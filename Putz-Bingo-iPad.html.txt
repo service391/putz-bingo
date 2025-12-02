@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+ <meta charset="UTF-8" />
+ <title>Putzplan Bingo</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <style>
+   :root {
+     --bg: #0f172a;
+     --card: #1e293b;
+     --accent: #38a169;
+     --accent-danger: #e53e3e;
+     --tile: #2563eb;
+     --tile-disabled: #4b5563;
+     --text: #e5e7eb;
+     --muted: #9ca3af;
+   }
+
+   * { box-sizing: border-box; }
+
+   body {
+     margin: 0;
+     min-height: 100vh;
+     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+     background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+     color: var(--text);
+     display: flex;
+     justify-content: center;
+     align-items: stretch;
+   }
+
+   .app {
+     max-width: 1400px;
+     width: 100%;
+     padding: 16px 18px 26px;
+     display: flex;
+     flex-direction: column;
+     gap: 16px;
+     animation: fadeInApp 0.5s ease-out;
+   }
+
+   header {
+     display: flex;
+     align-items: center;
+     gap: 16px;
+     flex-wrap: wrap;
+     justify-content: space-between;
+   }
+
+   .logo-wrap {
+     display: flex;
+     align-items: center;
+     gap: 12px;
+     flex-wrap: wrap;
+   }
+
+   /* automatisch skalierendes Logo + Einblend-Animation */
+   .logo {
+     max-height: clamp(56px, 12vh, 120px);
+     max-width: clamp(180px, 30vw, 380px);
+     height: auto;
+     width: auto;
+     object-fit: contain;
+     border-radius: 10px;
+     background: rgba(15, 23, 42, 0.6);
+     padding: 6px 10px;
+     animation: fadeInLogo 0.9s ease-out 0.1s both;
+   }
+
+   h1 {
+     margin: 0;
+     font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+     letter-spacing: 0.04em;
+     text-transform: uppercase;
+   }
+
+   .subtitle {
+     margin: 0;
+     font-size: 0.95rem;
+     color: var(--muted);
+   }
+
+   .top-controls {
+     display: flex;
+     gap: 8px;
+     align-items: center;
+     flex-wrap: wrap;
+   }
+
+   .btn {
+     border: none;
+     border-radius: 999px;
+     padding: 10px 18px;
+     font-size: 1rem;
+     font-weight: 600;
+     cursor: pointer;
+     display: inline-flex;
+     align-items: center;
+     gap: 8px;
+     background: var(--accent);
+     color: white;
+     box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+     transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+     white-space: nowrap;
+     -webkit-tap-highlight-color: transparent;
+   }
+
+   .btn:active {
+     transform: scale(0.97);
+     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+   }
+
+   .btn-secondary {
+     background: #0f172a;
+     border: 1px solid #475569;
+     color: var(--text);
+   }
+
+   .btn-danger {
+     background: var(--accent-danger);
+   }
+
+   .layout {
+     display: grid;
+     grid-template-columns: minmax(0, 3fr) minmax(0, 2.2fr);
+     gap: 16px;
+     align-items: flex-start;
+   }
+
+   .card {
+     background: rgba(15, 23, 42, 0.9);
+     border-radius: 18px;
+     padding: 16px;
+     box-shadow: 0 12px 45px rgba(0, 0, 0, 0.65);
+     border: 1px solid rgba(148, 163, 184, 0.15);
+     backdrop-filter: blur(12px);
+   }
+
+   .card-title {
+     margin: 0 0 8px;
+     font-size: 1.05rem;
+     display: flex;
+     justify-content: space-between;
+     align-items: baseline;
+     gap: 10px;
+   }
+
+   .card-title span.small {
+     font-size: 0.85rem;
+     color: var(--muted);
+     font-weight: 400;
+   }
+
+   .grid {
+     display: grid;
+     grid-template-columns: repeat(3, minmax(140px, 1fr));
+     gap: 14px;
+     margin-top: 8px;
+   }
+
+   .tile {
+     position: relative;
+     border: none;
+     border-radius: 16px;
+     padding: 24px 10px;
+     min-height: 130px;
+     background: radial-gradient(circle at top left, #3b82f6, #1d4ed8);
+     color: transparent;
+     font-size: 1.5rem;
+     font-weight: 700;
+     cursor: pointer;
+     box-shadow: 0 8px 24px rgba(15,23,42,0.8);
+     transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+     text-align: center;
+     text-transform: uppercase;
+     letter-spacing: 0.08em;
+     -webkit-tap-highlight-color: transparent;
+   }
+
+   .tile::after {
+     content: "KLICK MICH";
+     color: #e5e7eb;
+     font-size: 1.1rem;
+     letter-spacing: 0.12em;
+   }
+
+   .tile.revealed {
+     color: #f9fafb;
+   }
+
+   .tile.revealed::after {
+     content: "";
+   }
+
+   .tile.disabled {
+     background: linear-gradient(135deg, var(--tile-disabled), #111827);
+     cursor: default;
+     opacity: 0.82;
+     transform: translateY(2px);
+     box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+   }
+
+   .tile:active:not(.disabled) {
+     transform: translateY(2px) scale(0.99);
+     box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+   }
+
+   .hint {
+     margin-top: 6px;
+     font-size: 0.9rem;
+     color: var(--muted);
+     text-align: left;
+   }
+
+   .controls-row {
+     margin-top: 10px;
+     display: flex;
+     flex-wrap: wrap;
+     gap: 8px;
+     align-items: center;
+   }
+
+   .log-table-wrap {
+     max-height: 380px;
+     overflow: auto;
+     border-radius: 14px;
+     border: 1px solid rgba(148, 163, 184, 0.2);
+     background: radial-gradient(circle at top left, rgba(15,23,42,0.98), rgba(15,23,42,0.9));
+   }
+
+   table {
+     width: 100%;
+     border-collapse: collapse;
+     font-size: 0.9rem;
+   }
+
+   th, td {
+     padding: 8px 10px;
+     text-align: left;
+     border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+     white-space: nowrap;
+   }
+
+   th {
+     position: sticky;
+     top: 0;
+     background: #020617;
+     z-index: 1;
+     font-weight: 600;
+     font-size: 0.85rem;
+     letter-spacing: 0.06em;
+     text-transform: uppercase;
+   }
+
+   tbody tr:nth-child(even) { background: rgba(15, 23, 42, 0.85); }
+   tbody tr:nth-child(odd)  { background: rgba(15, 23, 42, 0.6); }
+
+   .small-text {
+     font-size: 0.8rem;
+     color: var(--muted);
+     margin-top: 4px;
+   }
+
+   @media (max-width: 900px) {
+     .layout {
+       grid-template-columns: minmax(0, 1fr);
+     }
+     .log-table-wrap { max-height: 260px; }
+   }
+
+   @media (max-width: 768px) {
+     .grid {
+       grid-template-columns: repeat(2, minmax(140px, 1fr));
+     }
+     .tile {
+       min-height: 120px;
+       font-size: 1.3rem;
+     }
+     header {
+       flex-direction: column;
+       align-items: flex-start;
+     }
+   }
+
+   @keyframes fadeInLogo {
+     0%   { opacity: 0; transform: translateY(-10px) scale(0.96); filter: blur(2px); }
+     100% { opacity: 1; transform: translateY(0) scale(1);        filter: blur(0); }
+   }
+
+   @keyframes fadeInApp {
+     0%   { opacity: 0; transform: translateY(6px); }
+     100% { opacity: 1; transform: translateY(0);   }
+   }
+ </style>
+</head>
+<body>
+ <div class="app">
+   <header>
+     <div class="logo-wrap">
+       <img src="logo.jpg" alt="Firmenlogo" class="logo" />
+       <div>
+         <h1>Putzplan Bingo</h1>
+         <p class="subtitle">Zufällige Raumverteilung · Ein Klick pro Person · Woche im Überblick</p>
+       </div>
+     </div>
+     <div class="top-controls">
+       <button class="btn btn-secondary" id="musicBtn">🎵 Musik starten</button>
+     </div>
+   </header>
+
+   <div class="layout">
+     <!-- Bingo -->
+     <section class="card">
+       <div class="card-title">
+         <span>Bingo-Felder</span>
+         <span class="small">Anzahl Räume: 6</span>
+       </div>
+       <p class="hint">
+         Jede Person tippt <strong>ein Feld</strong> an. Raum wird angezeigt, Feld gesperrt.
+         Für die nächste Runde: „Neu mischen“.
+       </p>
+       <div class="grid" id="grid"></div>
+       <div class="controls-row">
+         <button class="btn btn-danger" id="resetBtn">🔁 Neu mischen</button>
+         <span class="small-text" id="statusText"></span>
+       </div>
+     </section>
+
+     <!-- Wochenübersicht -->
+     <section class="card">
+       <div class="card-title">
+         <span>Wochenübersicht</span>
+         <span class="small">Nur letzte 7 Tage</span>
+       </div>
+       <p class="hint">
+         Beim Aufdecken wird der Name abgefragt. So seht ihr später:
+         <strong>Wer</strong> hat <strong>wann</strong> welchen <strong>Raum</strong> geputzt.
+       </p>
+       <div class="log-table-wrap">
+         <table>
+           <thead>
+             <tr>
+               <th>Datum</th>
+               <th>Uhrzeit</th>
+               <th>Name</th>
+               <th>Raum</th>
+             </tr>
+           </thead>
+           <tbody id="logBody"></tbody>
+         </table>
+       </div>
+       <div class="controls-row">
+         <button class="btn btn-secondary" id="clearLogBtn">🗑️ Übersicht leeren</button>
+         <span class="small-text">
+           Daten werden lokal im Browser (localStorage) auf diesem Gerät gespeichert.
+         </span>
+       </div>
+     </section>
+   </div>
+ </div>
+
+ <!-- Musik (Datei "musik.mp3" im gleichen Ordner) -->
+ <audio id="bgMusic" src="musik.mp3" loop></audio>
+
+ <script>
+   const ROOMS = [
+     "Werkstatt",
+     "Schlosserei",
+     "Waschraum",
+     "Küche",
+     "Ausbrennraum",
+     "Lager"
+   ];
+
+   const gridElement   = document.getElementById("grid");
+   const resetBtn      = document.getElementById("resetBtn");
+   const statusText    = document.getElementById("statusText");
+   const logBody       = document.getElementById("logBody");
+   const clearLogBtn   = document.getElementById("clearLogBtn");
+   const music         = document.getElementById("bgMusic");
+   const musicBtn      = document.getElementById("musicBtn");
+
+   const LOG_KEY = "putzBingoLog_v1";
+
+   function shuffle(array) {
+     for (let i = array.length - 1; i > 0; i--) {
+       const j = Math.floor(Math.random() * (i + 1));
+       [array[i], array[j]] = [array[j], array[i]];
+     }
+     return array;
+   }
+
+   function loadLog() {
+     try {
+       const raw = localStorage.getItem(LOG_KEY);
+       if (!raw) return [];
+       return JSON.parse(raw);
+     } catch {
+       return [];
+     }
+   }
+
+   function saveLog(entries) {
+     try {
+       localStorage.setItem(LOG_KEY, JSON.stringify(entries));
+     } catch { /* egal */ }
+   }
+
+   function addLogEntry(name, room) {
+     const entries = loadLog();
+     const now = new Date();
+     entries.push({
+       time: now.toISOString(),
+       name: name || "Unbekannt",
+       room
+     });
+     saveLog(entries);
+     renderLog();
+   }
+
+   function renderLog() {
+     const entries = loadLog();
+     const now = new Date();
+     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+     const recent = entries.filter(e => {
+       if (!e.time) return false;
+       const t = new Date(e.time);
+       return t >= sevenDaysAgo;
+     }).sort((a, b) => new Date(b.time) - new Date(a.time));
+
+     logBody.innerHTML = "";
+     if (recent.length === 0) {
+       const tr = document.createElement("tr");
+       const td = document.createElement("td");
+       td.colSpan = 4;
+       td.textContent = "Noch keine Einträge in dieser Woche.";
+       td.style.color = "#94a3b8";
+       tr.appendChild(td);
+       logBody.appendChild(tr);
+       return;
+     }
+
+     recent.forEach(entry => {
+       const t = new Date(entry.time);
+       const tr = document.createElement("tr");
+
+       const dateTd = document.createElement("td");
+       dateTd.textContent = t.toLocaleDateString("de-DE");
+
+       const timeTd = document.createElement("td");
+       timeTd.textContent = t.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+
+       const nameTd = document.createElement("td");
+       nameTd.textContent = entry.name || "Unbekannt";
+
+       const roomTd = document.createElement("td");
+       roomTd.textContent = entry.room;
+
+       tr.appendChild(dateTd);
+       tr.appendChild(timeTd);
+       tr.appendChild(nameTd);
+       tr.appendChild(roomTd);
+
+       logBody.appendChild(tr);
+     });
+   }
+
+   function updateStatus() {
+     const disabledCount = gridElement.querySelectorAll(".tile.disabled").length;
+     if (disabledCount === 0) {
+       statusText.textContent = "Alle Räume sind noch verfügbar.";
+     } else if (disabledCount < ROOMS.length) {
+       statusText.textContent = disabledCount + " von " + ROOMS.length + " Räumen wurden bereits gezogen.";
+     } else {
+       statusText.textContent = "Alle Räume sind verteilt. Für die nächste Runde: Neu mischen.";
+     }
+   }
+
+   function createTiles() {
+     gridElement.innerHTML = "";
+     const shuffledRooms = shuffle([...ROOMS]);
+
+     shuffledRooms.forEach(room => {
+       const btn = document.createElement("button");
+       btn.className = "tile";
+       btn.dataset.room = room;
+
+       btn.addEventListener("click", () => {
+         if (btn.classList.contains("disabled")) return;
+
+         const name = prompt("Bitte deinen Namen eingeben:", "");
+         btn.textContent = room;
+         btn.classList.add("revealed", "disabled");
+         addLogEntry(name, room);
+         updateStatus();
+       });
+
+       gridElement.appendChild(btn);
+     });
+
+     updateStatus();
+   }
+
+   clearLogBtn.addEventListener("click", () => {
+     if (confirm("Willst du die Wochenübersicht wirklich löschen?")) {
+       saveLog([]);
+       renderLog();
+     }
+   });
+
+   musicBtn.addEventListener("click", async () => {
+     try {
+       if (music.paused) {
+         await music.play();      // iPad: funktioniert nur nach Nutzer-Tap
+         musicBtn.textContent = "🔇 Musik stoppen";
+       } else {
+         music.pause();
+         musicBtn.textContent = "🎵 Musik starten";
+       }
+     } catch (e) {
+       alert("Safari blockiert evtl. die Wiedergabe. Bitte einmal irgendwo tippen und dann erneut auf den Musik-Button.");
+       console.error(e);
+     }
+   });
+
+   resetBtn.addEventListener("click", () => {
+     createTiles();
+   });
+
+   // Start
+   createTiles();
+   renderLog();
+ </script>
+</body>
+</html>
